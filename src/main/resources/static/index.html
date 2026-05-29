@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+    <meta charset="UTF-8">
+    <title>Peo Nõustaja AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <style>
+        body { font-family: sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px;}
+        input, button { width: 100%; margin-bottom: 15px; padding: 10px; box-sizing: border-box; }
+        #result { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+<h2>Kas minna peole? 🤔</h2>
+
+<label>Energia tase (1-10):</label>
+<input type="number" id="energy" min="1" max="10" value="5">
+
+<label>Meeleolu (max 50 tähte):</label>
+<input type="text" id="mood" maxlength="50" placeholder="nt. seiklushimuline">
+
+<label>Huvid (max 50 tähte):</label>
+<input type="text" id="prefs" maxlength="50" placeholder="nt. tantsimine, lauamängud">
+
+<button onclick="askAI()">Küsi AI-lt</button>
+
+<div id="result">Vastus ilmub siia...</div>
+
+<script>
+    async function askAI() {
+        document.getElementById('result').innerHTML = "<i>Mõtleb...</i>";
+
+        const payload = {
+            energyLevel: parseInt(document.getElementById('energy').value),
+            mood: document.getElementById('mood').value,
+            preferences: document.getElementById('prefs').value
+        };
+
+        const response = await fetch('/api/party/decide', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if(response.ok) {
+            const data = await response.json();
+            // Turvalisus: Puhastame Markdowni enne HTML-iks tegemist
+            const cleanHTML = DOMPurify.sanitize(marked.parse(data.markdownMessage));
+
+            document.getElementById('result').innerHTML =
+                `<p><strong>AI Loogika (CoT):</strong> ${data.chainOfThought}</p>
+                     <hr>
+                     <div>${cleanHTML}</div>`;
+        } else {
+            document.getElementById('result').innerHTML = "<b style='color:red'>Viga sisendis või serveris!</b>";
+        }
+    }
+</script>
+</body>
+</html>
