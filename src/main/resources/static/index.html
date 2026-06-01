@@ -2,7 +2,7 @@
 <html lang="et">
 <head>
     <meta charset="UTF-8">
-    <title>Peo Nõustaja AI</title>
+    <title>Peonõustaja AI</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <style>
@@ -15,13 +15,13 @@
 
 <h2>Kas minna peole? 🤔</h2>
 
-<label>Energia tase (1-10):</label>
+<label>Energiatase (1-10):</label>
 <input type="number" id="energy" min="1" max="10" value="5">
 
-<label>Meeleolu (max 50 tähte):</label>
+<label>Meeleolu:</label>
 <input type="text" id="mood" maxlength="50" placeholder="nt. seiklushimuline">
 
-<label>Huvid (max 50 tähte):</label>
+<label>Huvid:</label>
 <input type="text" id="prefs" maxlength="50" placeholder="nt. tantsimine, lauamängud">
 
 <button onclick="askAI()">Küsi AI-lt</button>
@@ -49,10 +49,7 @@
             // Turvalisus: Puhastame Markdowni enne HTML-iks tegemist
             const cleanHTML = DOMPurify.sanitize(marked.parse(data.markdownMessage));
 
-            document.getElementById('result').innerHTML =
-                `<p><strong>AI Loogika (CoT):</strong> ${data.chainOfThought}</p>
-                     <hr>
-                     <div>${cleanHTML}</div>`;
+            document.getElementById('result').innerHTML = `<div>${cleanHTML}</div>`;
         } else {
             document.getElementById('result').innerHTML = "<b style='color:red'>Viga sisendis või serveris!</b>";
         }
