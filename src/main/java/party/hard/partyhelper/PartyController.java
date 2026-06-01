@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.ChatOptions;
-import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -24,16 +23,21 @@ import java.util.regex.Pattern;
 public class PartyController {
 
     private static final Logger log = LoggerFactory.getLogger(PartyController.class);
+
     private static final Pattern INJECTION_PATTERN = Pattern.compile(
             "(?i)(ignoreeri|unusta|ignore|bypass|system prompt|override|käsk|kood|drop table|instruction)"
     );
+
     private final ChatClient chatClient;
+
     @Value("classpath:prompts/system-prompt.md")
     private Resource systemPrompt;
     @Value("classpath:prompts/user-prompt.md")
     private Resource userPrompt;
     @Value("classpath:prompts/judge-system-prompt.md")
     private Resource judgeSystemPrompt;
+    @Value("classpath:prompts/judge-user-prompt.md")
+    private Resource judgeUserPrompt;
 
     public PartyController(ChatClient.Builder chatClientBuilder) {
         this.chatClient = chatClientBuilder.build();
@@ -44,29 +48,31 @@ public class PartyController {
 
         String combinedInput = input.mood() + " " + input.preferences();
 
+        // 1. STAATILINE KONTROLL
         if (INJECTION_PATTERN.matcher(combinedInput).find()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ebasobiv sisend!");
         }
 
-        String judgeDecision = chatClient.prompt()
-                .system(judgeSystemPrompt)
-                .user(combinedInput)
+        // 2. LLM KOHTUNIK
+        SecurityResult judgeDecision = chatClient.prompt()
+                .system(sys -> sys.text(judgeSystemPrompt))
+                .user(u -> u.text(judgeUserPrompt)
+                        .param("userInput", combinedInput))
                 .options(ChatOptions.builder()
-                        .temperature(0.0)
-                        .maxTokens(5))
+                        .temperature(0.0))
                 .call()
-                .content();
+                .entity(SecurityResult.class);
 
-        if (judgeDecision != null && judgeDecision.trim().equalsIgnoreCase("JAH")) {
+        log.info("LLM Kohtuniku vastus: {}", judgeDecision);
+
+        if (judgeDecision != null && judgeDecision.isMalicious()) {
             log.warn("LLM Judge blokeeris sisendi: {}", combinedInput);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Turvarisk tuvastatud LLM Kohtuniku poolt.");
         }
 
-        var outputConverter = new BeanOutputConverter<>(PartyDecision.class);
-
+        // 3. PEONÕUSTAJA
         PartyDecision decision = chatClient.prompt()
-                .system(sys -> sys.text(systemPrompt)
-                        .param("format", outputConverter.getFormat())) // Lisab JSON schema
+                .system(sys -> sys.text(systemPrompt))
                 .user(u -> u.text(userPrompt)
                         .param("energyLevel", input.energyLevel())
                         .param("mood", input.mood())
@@ -74,12 +80,15 @@ public class PartyController {
                 .options(ChatOptions.builder()
                         .temperature(0.7))
                 .call()
-                .entity(outputConverter);
+                .entity(PartyDecision.class);
 
         log.info("--- AI MÕTTEKÄIK (CoT) ---");
         log.info("Kasutaja andmed: Energia {}, Meeleolu '{}', Huvid '{}'",
                 input.energyLevel(), input.mood(), input.preferences());
-        log.info("AI Loogika: {}", decision.chainOfThought());
+
+        if (decision != null) {
+            log.info("AI Loogika: {}", decision.chainOfThought());
+        }
         log.info("---------------------------");
 
         return decision;
