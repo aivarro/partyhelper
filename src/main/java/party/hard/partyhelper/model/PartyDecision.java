@@ -1,4 +1,4 @@
-package party.hard.partyhelper;
+package party.hard.partyhelper.model;
 
 public record PartyDecision(boolean shouldGoOut,
                             String chainOfThought,

@@ -1,4 +1,4 @@
-package party.hard.partyhelper;
+package party.hard.partyhelper.model;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
