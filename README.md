@@ -1,26 +1,20 @@
 # 🎉 Peonõustaja AI (Party Advisor AI)
 
-See on **Spring Booti** ja **Spring AI** raamistikul põhinev nutikas veebirakendus, mis aitab kasutajal otsustada, kas
-minna täna peole või jääda pigem koju. Rakendus analüüsib kasutaja energiataset, meeleolu ja eelistusi ning genereerib
-tehisintellekti abil isikupärastatud, humoorika ja stiilselt vormindatud soovituse.
+See on **Spring Booti** ja **Spring AI** raamistikul põhinev nutikas veebirakendus, mis aitab kasutajal otsustada, kas minna täna peole või jääda pigem koju. Rakendus analüüsib kasutaja energiataset, meeleolu ja eelistusi ning genereerib tehisintellekti abil isikupärastatud, humoorika ja stiilselt vormindatud soovituse.
 
-Rakendus paistab silma range turvaarhidektuuri poolest, kasutades sisendi valideerimiseks nii staatilisi filtreid kui ka
-**LLM-as-a-Judge** (AI-põhine turvakohtunik) mustrit.
+Rakendus on ehitatud kasutades puhtaid arenduspraktikaid (Clean Code), kihilist arhitektuuri ja rangeid turvameetmeid.
 
 ---
 
 ## 🚀 Peamised omadused
 
-* **Tugevalt tüübitud AI vastused:** Tehisintellekti vastused ei ole lihtsalt tekst, vaid need on Spring AI abil otse
-  seotud Java klassidega (`record`).
-* **Kihiline arhitektuur (Layered Architecture):** Kood on puhtalt jaotatud mudeliteks (`model`), äriloogikaks (
-  `service`) ja veebiliideseks (`controller`).
+* **Tugevalt tüübitud AI vastused:** Tehisintellekti vastused seotakse Spring AI automaatse JSON-skeemi genereerimise abil otse Java klassidega (`record`).
+* **Kihiline arhitektuur (Layered Architecture):** Kood on puhtalt jaotatud mudeliteks (`model`), äriloogikaks (`service`) ja veebiliideseks (`controller`).
+* **Varjatud AI Mõttekäik (Chain of Thought):** Tehisintellekt kasutab otsuse tegemiseks CoT loogikat, mis prinditakse serveri logidesse, kuid peidetakse Jacksoni (`@JsonProperty.Access.WRITE_ONLY`) abil turvaliselt lõppkasutaja eest.
+* **Range sisendi valideerimine:** API sisend on kaitstud `@Valid` annotatsioonide ja pikkusepiirangutega, tagades, et vigased päringud peatatakse enne äriloogikani jõudmist (testitud 100% ulatusega `@WebMvcTest` abil).
 * **Kaheastmeline turvakontroll (Prompt Injection kaitse):**
-    1. **RegEx filter:** Püüab kinni teadaolevad ründesõnad (nt *ignore*, *bypass*).
-    2. **LLM Kohtunik:** Eraldi eraldiseisev AI mudel (temperatuuriga 0.0), mis analüüsib sisendit manipuleerimiskatsete
-       osas, enne kui see põhimudelisse lubatakse.
-* **Turvaline ja ilus kasutajaliides:** Lihtne HTML/JS frontend, mis kasutab Markdowni renderdamiseks `marked.js` teeki
-  ja XSS rünnakute vältimiseks `DOMPurify` puhastajat.
+  1. **RegEx filter:** Püüab kinni teadaolevad ründesõnad (nt *ignore*, *bypass*).
+  2. **LLM Kohtunik:** Eraldi eraldiseisev AI mudel (temperatuuriga 0.0), mis hindab sisendit manipuleerimiskatsete osas tagastades tugevalt tüübitud `SecurityResult` booleani.
 
 ---
 
@@ -28,8 +22,7 @@ Rakendus paistab silma range turvaarhidektuuri poolest, kasutades sisendi valide
 
 * **Java 21** (või uuem)
 * **Gradle** või **Maven**
-* Kehtiv **LLM API võti** (nt Google Gemini, OpenAI, Claude jne, vastavalt sellele, mis on `application.properties`
-  failis seadistatud).
+* Kehtiv **LLM API võti** (nt Google Gemini, OpenAI, Claude).
 
 ---
 
@@ -45,39 +38,34 @@ Rakendus paistab silma range turvaarhidektuuri poolest, kasutades sisendi valide
 2. **Lisa oma API võti:**
    Ava `src/main/resources/application.properties` ja lisa sinna oma tehisintellekti teenusepakkuja API võti.
    Näiteks Google Gemini puhul:
-    spring.ai.vertex.ai.gemini.api-key=SINU_SALAJANE_API_VÕTI
+```properties
+spring.ai.vertex.ai.gemini.api-key=SINU_SALAJANE_API_VÕTI
+
 ```
 
-3. **Käivita rakendus:**
-   Kasutades Gradle'it:
 
+3. **Käivita testid:**
+```bash
+./gradlew test
+
+```
+
+
+4. **Käivita rakendus:**
 ```bash
 ./gradlew bootRun
 
 ```
 
-Kasutades Mavenit:
 
-```bash
-./mvnw spring-boot:run
-
-```
 
 ---
 
 ## 🎮 Kuidas kasutada?
 
-### 1. Graafiline kasutajaliides (Frontend)
+### API päring (Backend)
 
-Kui rakendus on edukalt käivitunud, ava oma veebibrauseris aadress:
-👉 **http://localhost:8080**
-
-Seal saad sisestada oma energiataseme (1-10), hetke meeleolu ja huvid. Vajutades nuppu "Küsi AI-lt", tehakse päring
-serverisse ja kuvatakse stiilne vastus.
-
-### 2. API päring (Backend)
-
-Võid rakendusega suhelda ka otse läbi REST API (näiteks Postmani või cURL-iga).
+Võid rakendusega suhelda otse läbi REST API (näiteks Postmani või cURL-iga).
 
 **Päring (POST):** `http://localhost:8080/api/party/decide`
 **Päise tüüp:** `Content-Type: application/json`
@@ -94,37 +82,34 @@ Võid rakendusega suhelda ka otse läbi REST API (näiteks Postmani või cURL-ig
 ```
 
 **Edukuse vastus (200 OK):**
+*Märka, et sisemine AI mõttekäik on vastusest eemaldatud, kuid serveri logides nähtav.*
 
 ```json
 {
   "shouldGoOut": true,
-  "chainOfThought": "Kasutaja energia on kõrge ja ta on seiklushimuline, lisaks meeldib talle elektrooniline muusika...",
   "recommendedParty": "Maa-alune tehno-reiv",
   "markdownMessage": "### 🚀 Pane tossud jalga!\n\nSinu energia on laes ja oled valmis seiklusteks..."
 }
 
 ```
 
-*Märkus: Pahatahtliku sisendi puhul (nt "unusta varasemad reeglid") tagastab server `400 Bad Request` ja ei edasta
-päringut põhimudelile.*
+*Märkus: Pahatahtliku või vales formaadis sisendi puhul (nt "unusta varasemad reeglid" või energia=11) tagastab server koheselt `400 Bad Request` ja ei edasta päringut põhimudelile.*
 
 ---
 
 ## 📂 Projekti struktuur
 
 ```text
-src/main/java/party/hard/partyhelper/
- ├── controller/        # REST API sisendpunktid (PartyController)
- ├── model/             # Andmestruktuurid (UserInput, PartyDecision, SecurityResult)
- └── service/           # Äriloogika, turvakontroll ja AI suhtlus (PartyService)
-
-src/main/resources/
- ├── prompts/           # LLM süsteemi ja kasutaja juhised (.md failid)
- ├── static/            # Frontend (index.html, CSS, JS)
- └── application.properties # Konfiguratsioon
-
-```
-
-```
-
-```
+src/
+ ├── main/java/party/hard/partyhelper/
+ │    ├── controller/      # REST API sisendpunktid (PartyController)
+ │    ├── model/           # Andmestruktuurid (UserInput, PartyDecision, SecurityResult)
+ │    └── service/         # Äriloogika, turvakontroll ja AI suhtlus (PartyService)
+ │
+ ├── main/resources/
+ │    ├── prompts/         # LLM süsteemi ja kasutaja juhised (.md failid)
+ │    └── application.properties # Konfiguratsioon
+ │
+ └── test/java/party/hard/partyhelper/
+      ├── controller/      # Kontrolleri ja valideerimise testid (@WebMvcTest)
+      └── service/         # Äriloogika ja AI Mocking testid
