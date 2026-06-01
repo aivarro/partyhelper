@@ -1,9 +1,11 @@
 package party.hard.partyhelper.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import static com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY;
 
 public record PartyDecision(boolean shouldGoOut,
-                            @JsonIgnore
+                            @JsonProperty(access = WRITE_ONLY)
                             String chainOfThought,
                             String recommendedParty,
                             String markdownMessage) {
